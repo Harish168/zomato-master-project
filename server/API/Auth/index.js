@@ -15,28 +15,28 @@ Method    POST
 */
 Router.post("/signup", async (req, res) => {
     try {
-      const { email, password, fullname, phoneNumber } = req.body.credentials;
+      
+      //check whether user exist or not(check in user folder -> index.js)
+      await UserModel.findByEmailAndPhone(req.body.credentials);
 
-      //check whether email exists
-      const checkUserByEmail = await UserModel.findOne({ email });  //both key&value same so { email: email } => {email}
-      const checkUserByPhone = await UserModel.findOne({ phoneNumber });  //both key&value same so { email: email } => {email}
-      if(checkUserByEmail || checkUserByPhone){
-        return res.json({ error: "User already exists!"});
-      }
-
+      /*Now hashing is done in user folder by using pre method.so only we want to save data to DB
       //hash the password (password encrypt)
+    
       //if salt(8).It will encrypt again and again for 8times(if salt is more then it will more secure but it affect performance becz it use cpu for encrypt)
-      const bcryptsalt = await bcrypt.gensalt(8);      
-      const hashedPassword = await bcrypt.hash(password, bcryptsalt);
+      const bcryptSalt = await bcrypt.genSalt(8);       
+      const hashedPassword = await bcrypt.hash(password, bcryptSalt); 
 
       //save to DB
       await UserModel.create({
-        ...req.body.credentials,
-        password: hashedPassword,
-      });
+        ...req.body.credentials,    //user given remaining data is stored in DB
+        password: hashedPassword,   //hashed password stored in DB (not user given password)
+      });  */
 
-      //generate JWT auth token(if new user)
-      const token = jwt.sign({ user: {fullname, email }}, "ZomatoAPP");
+      //save to DB(pre method is triggered)
+      const newUser = await UserModel.create(req.body.credentials);
+
+      //generate JWT auth token
+      const token = newUser.generateJwtToken();
       
       //return
       return res.status(200).json({ token, status:"success" });
